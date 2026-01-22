@@ -1,91 +1,140 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-export const create = mutation({
+// Register a new user
+export const register = mutation({
   args: {
     name: v.string(),
     email: v.string(),
-    passwordHash: v.string(),
+    password: v.string(),
   },
   handler: async (ctx, args) => {
-    // Validate inputs
-    if (!args.name.trim()) {
+    const email = args.email.toLowerCase().trim();
+    const name = args.name.trim();
+
+    if (!name) {
       throw new Error("Name is required");
     }
-
-    if (!args.email.trim()) {
+    if (!email) {
       throw new Error("Email is required");
     }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(args.email)) {
-      throw new Error("Invalid email format");
+    if (!args.password || args.password.length < 4) {
+      throw new Error("Password must be at least 4 characters");
     }
 
-    if (!args.passwordHash) {
-      throw new Error("Password hash is required");
-    }
-
-    // Check if user already exists
+    // Check if email already exists
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase().trim()))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .unique();
 
     if (existing) {
-      throw new Error("User with this email already exists");
+      throw new Error("Email already registered");
     }
 
-    // First user becomes admin, others are viewers by default
-    const firstUser = await ctx.db.query("users").first();
-    const role = firstUser ? "viewer" : "admin";
-
-    // Default pages for first admin or regular viewer
-    const allowedPages = role === "admin"
-      ? ["/dashboard", "/inventory", "/sales", "/reports", "/users"]
-      : ["/dashboard", "/inventory"];
+    // Check if this is the first user (should be admin)
+    const allUsers = await ctx.db.query("users").collect();
+    const isFirstUser = allUsers.length === 0;
 
     const userId = await ctx.db.insert("users", {
-      name: args.name.trim(),
-      email: args.email.toLowerCase().trim(),
-      passwordHash: args.passwordHash,
-      role,
-      allowedPages,
+      name,
+      email,
+      password: args.password, // Plain text for simplicity
+      role: isFirstUser ? "admin" : "viewer",
+      allowedPages: isFirstUser
+        ? ["/dashboard", "/inventory", "/sales", "/reports", "/users"]
+        : ["/dashboard", "/inventory"],
     });
 
-    return userId;
+    return { userId, isAdmin: isFirstUser };
   },
 });
 
-export const getByEmail = query({
-  args: { email: v.string() },
+// Login user
+export const login = mutation({
+  args: {
+    email: v.string(),
+    password: v.string(),
+  },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const email = args.email.toLowerCase().trim();
+
+    const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase().trim()))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .unique();
+
+    if (!user) {
+      throw new Error("Invalid email or password");
+    }
+
+    if (user.password !== args.password) {
+      throw new Error("Invalid email or password");
+    }
+
+    return {
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      allowedPages: user.allowedPages,
+    };
   },
 });
 
+// Get user by ID
 export const getById = query({
   args: { id: v.id("users") },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.id);
-    if (!user) {
-      return null;
-    }
-    return user;
+    if (!user) return null;
+    // Don't return password
+    return {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      allowedPages: user.allowedPages,
+    };
   },
 });
 
+// Get user by email
+export const getByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase().trim()))
+      .unique();
+    if (!user) return null;
+    return {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      allowedPages: user.allowedPages,
+    };
+  },
+});
+
+// List all users (for admin)
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("users").collect();
+    const users = await ctx.db.query("users").collect();
+    // Don't return passwords
+    return users.map((user) => ({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      allowedPages: user.allowedPages,
+    }));
   },
 });
 
+// Update user role and pages (admin only)
 export const updateRoleAndPages = mutation({
   args: {
     id: v.id("users"),
@@ -93,21 +142,13 @@ export const updateRoleAndPages = mutation({
     allowedPages: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    // Verify user exists
     const user = await ctx.db.get(args.id);
     if (!user) {
-      throw new Error(`Failed to update security: User with ID ${args.id} not found.`);
+      throw new Error("User not found");
     }
 
-    // Validate allowedPages is not empty
     if (args.allowedPages.length === 0) {
-      throw new Error("Security Violation: Every user must have access to at least one system endpoint.");
-    }
-
-    // Ensure valid role
-    const validRoles = ["admin", "editor", "viewer"];
-    if (!validRoles.includes(args.role)) {
-      throw new Error(`Security Violation: Invalid role '${args.role}' specified.`);
+      throw new Error("User must have access to at least one page");
     }
 
     await ctx.db.patch(args.id, {
@@ -117,6 +158,7 @@ export const updateRoleAndPages = mutation({
   },
 });
 
+// Update user profile
 export const updateProfile = mutation({
   args: {
     id: v.id("users"),
@@ -124,7 +166,6 @@ export const updateProfile = mutation({
     email: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Verify user exists
     const user = await ctx.db.get(args.id);
     if (!user) {
       throw new Error("User not found");
@@ -140,19 +181,11 @@ export const updateProfile = mutation({
     }
 
     if (args.email !== undefined) {
-      if (!args.email.trim()) {
+      const normalizedEmail = args.email.toLowerCase().trim();
+      if (!normalizedEmail) {
         throw new Error("Email cannot be empty");
       }
 
-      // Basic email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(args.email)) {
-        throw new Error("Invalid email format");
-      }
-
-      const normalizedEmail = args.email.toLowerCase().trim();
-
-      // Check if email is already taken by another user
       const existing = await ctx.db
         .query("users")
         .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
@@ -172,4 +205,3 @@ export const updateProfile = mutation({
     await ctx.db.patch(args.id, updates);
   },
 });
-

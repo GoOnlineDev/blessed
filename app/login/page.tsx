@@ -1,29 +1,50 @@
 "use client";
 
 import { useState } from "react";
-import { loginAction } from "@/app/actions/auth";
-import { Package, Mail, Lock, ArrowRight, ShieldCheck } from "lucide-react";
-import { Button, Input } from "@/components/UI";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Button } from "@/components/UI";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+const STORAGE_KEY = "genesis_auth_user";
 
 export default function LoginPage() {
+  const login = useMutation(api.users.login);
+  const router = useRouter();
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsPending(true);
     setError("");
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
     try {
-      const result = await loginAction(formData);
-      if (result?.error) {
-        setError(result.error);
-        setIsPending(false);
-      }
+      const result = await login({ email, password });
+      
+      // Store in localStorage
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          userId: result.userId,
+          name: result.name,
+          email: result.email,
+          role: result.role,
+          allowedPages: result.allowedPages,
+        })
+      );
+
+      // Redirect to dashboard
+      router.push("/dashboard");
     } catch (error: any) {
-      if (error?.message?.includes("NEXT_REDIRECT")) {
-        return;
-      }
-      setError(error?.message || "Something went wrong. Please try again.");
+      console.error("Login error:", error);
+      setError(error?.message || "Invalid email or password");
       setIsPending(false);
     }
   };
@@ -38,19 +59,25 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative">
         <div className="text-center mb-12 space-y-4">
           <div className="inline-flex items-center justify-center p-6 rounded-[2.5rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] mb-4 border border-slate-50">
-            <img src="/logo.png" alt="Blessed@1 Logo" className="w-16 h-16 object-contain" />
+            <img src="/logo.png" alt="Genesis@1 Logo" className="w-16 h-16 object-contain" />
           </div>
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none uppercase">Blessed@1</h1>
-            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mt-2">Hardware Inventory</p>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none uppercase">
+              Genesis@1
+            </h1>
+            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mt-2">
+              Inventory System
+            </p>
           </div>
         </div>
 
         <div className="bg-white border border-slate-100 p-10 rounded-[3rem] shadow-[0_20px_70px_rgba(0,0,0,0.04)] relative overflow-hidden">
-          <form action={handleSubmit} className="space-y-8 relative">
+          <form onSubmit={handleSubmit} className="space-y-8 relative">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 leading-tight">Welcome Back</h2>
-              <p className="text-slate-400 text-sm font-medium mt-1">Please enter your credentials to proceed.</p>
+              <h2 className="text-2xl font-black text-slate-900 leading-tight">Sign in</h2>
+              <p className="text-slate-400 text-sm font-medium mt-1">
+                Access your inventory dashboard.
+              </p>
             </div>
 
             {error && (
@@ -61,7 +88,9 @@ export default function LoginPage() {
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest px-1">Institutional Email</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest px-1">
+                  Email
+                </label>
                 <div className="relative group">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-colors group-focus-within:text-indigo-600" />
                   <input
@@ -69,15 +98,16 @@ export default function LoginPage() {
                     type="email"
                     required
                     className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 focus:bg-white transition-all text-sm font-medium"
-                    placeholder="account@blessed1.com"
+                    placeholder="you@example.com"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Secure Password</label>
-                  <a href="#" className="text-[10px] font-black text-indigo-600 hover:text-indigo-700 transition-colors uppercase tracking-widest">Recover</a>
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                    Password
+                  </label>
                 </div>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-colors group-focus-within:text-indigo-600" />
@@ -100,11 +130,11 @@ export default function LoginPage() {
               {isPending ? (
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 border-3 border-white/20 border-t-white rounded-full animate-spin" />
-                  <span className="uppercase tracking-widest">Authenticating...</span>
+                  <span className="uppercase tracking-widest">Signing in...</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 uppercase tracking-[0.2em]">
-                  Launch System
+                  Sign In
                   <ArrowRight className="w-5 h-5" />
                 </div>
               )}
@@ -113,18 +143,14 @@ export default function LoginPage() {
 
           <div className="mt-10 pt-8 border-t border-slate-50 text-center">
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
-              New Administrator?{" "}
-              <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-black transition-colors ml-1">
-                Initialize Site
+              Need an account?{" "}
+              <Link
+                href="/register"
+                className="text-indigo-600 hover:text-indigo-700 font-black transition-colors ml-1"
+              >
+                Create one
               </Link>
             </p>
-          </div>
-        </div>
-
-        <div className="mt-12 flex items-center justify-center gap-8 text-slate-300">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={16} />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Verified Secure</span>
           </div>
         </div>
       </div>

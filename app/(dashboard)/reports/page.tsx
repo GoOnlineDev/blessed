@@ -7,10 +7,11 @@ import { Table, TableRow, TableCell } from "@/components/Table";
 import {
     BarChart3,
     TrendingUp,
-    TrendingDown,
     DollarSign,
     Calendar,
-    Download
+    Download,
+    Package,
+    Percent
 } from "lucide-react";
 import {
     AreaChart,
@@ -22,10 +23,10 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Legend
 } from "recharts";
 import { Button } from "@/components/UI";
 import { useAuth } from "@/components/AuthProvider";
+import { clsx } from "clsx";
 
 export default function ReportsPage() {
     const { user } = useAuth();
@@ -44,6 +45,7 @@ export default function ReportsPage() {
 
     return (
         <div className="space-y-4 sm:space-y-6 lg:space-y-8 pb-8">
+            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
@@ -84,7 +86,7 @@ export default function ReportsPage() {
                 <StatsCard
                     title="Margin"
                     value={`${avgMargin.toFixed(1)}%`}
-                    icon={<TrendingUp size={18} className="rotate-45" />}
+                    icon={<Percent size={18} />}
                     color="amber"
                 />
             </div>
@@ -158,9 +160,10 @@ export default function ReportsPage() {
                                         stroke="#64748b"
                                         fontSize={10}
                                         fontWeight={700}
-                                        width={120}
+                                        width={100}
                                         tickLine={false}
                                         axisLine={false}
+                                        tickFormatter={(value) => value.length > 12 ? value.substring(0, 12) + '...' : value}
                                     />
                                     <Tooltip
                                         cursor={{ fill: '#f8fafc' }}
@@ -171,6 +174,7 @@ export default function ReportsPage() {
                                             boxShadow: '0 10px 30px rgba(0,0,0,0.04)'
                                         }}
                                         labelStyle={{ color: '#0f172a', fontWeight: 900, marginBottom: '4px' }}
+                                        formatter={(value: number) => [`UGX ${value.toLocaleString()}`, 'Revenue']}
                                     />
                                     <Bar dataKey="revenue" fill="#4f46e5" radius={[0, 8, 8, 0]} barSize={24} />
                                 </BarChart>
@@ -182,47 +186,124 @@ export default function ReportsPage() {
                 </div>
             </div>
 
-            <div className="space-y-6">
+            {/* Product Performance Table */}
+            <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Performance Deep Dive</h3>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Detailed Unit Analysis</span>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                            <Package size={18} />
+                        </div>
+                        <div>
+                            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">Product Performance</h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Detailed breakdown</p>
+                        </div>
+                    </div>
                 </div>
-                <Table headers={[
-                    "Item Details",
-                    "Sold",
-                    { label: "Gross Revenue", className: "hidden md:table-cell" },
-                    { label: "Net Profit", className: "hidden sm:table-cell" },
-                    "Margin"
-                ]}>
+
+                {/* Mobile Card View */}
+                <div className="block lg:hidden space-y-3">
                     {salesByItem?.map((item) => {
                         const margin = item.revenue > 0 ? ((item.profit || 0) / item.revenue) * 100 : 0;
                         return (
-                            <TableRow key={item.productId} className="hover:bg-slate-50/50">
-                                <TableCell>
-                                    <div className="font-bold text-slate-900 truncate max-w-[150px] sm:max-w-none">{item.name}</div>
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{item.sku}</div>
-                                </TableCell>
-                                <TableCell>
-                                    <span className="font-black text-slate-900">{item.quantity}</span>
-                                    <span className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Uni</span>
-                                </TableCell>
-                                <TableCell className="font-bold text-slate-900 hidden md:table-cell">UGX {item.revenue.toLocaleString()}</TableCell>
-                                <TableCell className="font-black text-emerald-600 hidden sm:table-cell">UGX {(item.profit || 0).toLocaleString()}</TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden w-28 hidden xl:block">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                                                style={{ width: `${Math.min(100, margin * 2)}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-sm font-black text-slate-900">{margin.toFixed(1)}%</span>
+                            <div key={item.productId} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+                                <div className="flex items-start justify-between mb-3">
+                                    <div>
+                                        <h4 className="font-bold text-slate-900">{item.name}</h4>
+                                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">{item.sku}</p>
                                     </div>
-                                </TableCell>
-                            </TableRow>
+                                    <div className={clsx(
+                                        "px-2 py-1 rounded-lg text-xs font-bold",
+                                        margin >= 30 ? "bg-emerald-100 text-emerald-700" : margin >= 15 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"
+                                    )}>
+                                        {margin.toFixed(0)}%
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                                        <p className="text-[9px] font-bold text-slate-500 uppercase mb-0.5">Sold</p>
+                                        <p className="text-sm font-black text-slate-900">{item.quantity}</p>
+                                    </div>
+                                    <div className="bg-indigo-50 rounded-xl p-2.5 border border-indigo-100">
+                                        <p className="text-[9px] font-bold text-indigo-600 uppercase mb-0.5">Revenue</p>
+                                        <p className="text-sm font-black text-indigo-700">{(item.revenue / 1000).toFixed(0)}k</p>
+                                    </div>
+                                    <div className="bg-emerald-50 rounded-xl p-2.5 border border-emerald-100">
+                                        <p className="text-[9px] font-bold text-emerald-600 uppercase mb-0.5">Profit</p>
+                                        <p className="text-sm font-black text-emerald-700">{((item.profit || 0) / 1000).toFixed(0)}k</p>
+                                    </div>
+                                </div>
+                            </div>
                         );
                     })}
-                </Table>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden lg:block">
+                    <Table headers={[
+                        "Product",
+                        { label: "Units Sold", className: "text-center" },
+                        { label: "Revenue", className: "text-right" },
+                        { label: "Profit", className: "text-right" },
+                        { label: "Margin", className: "text-center" }
+                    ]}>
+                        {salesByItem?.map((item) => {
+                            const margin = item.revenue > 0 ? ((item.profit || 0) / item.revenue) * 100 : 0;
+                            return (
+                                <TableRow key={item.productId} className="hover:bg-slate-50/50">
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+                                                <Package size={16} className="text-slate-400" />
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-900 truncate max-w-[200px]">{item.name}</div>
+                                                <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{item.sku}</div>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <span className="inline-flex items-center justify-center min-w-[3rem] px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 font-black text-slate-900">
+                                            {item.quantity}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <span className="font-bold text-indigo-600">UGX {item.revenue.toLocaleString()}</span>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <span className="font-black text-emerald-600">+UGX {(item.profit || 0).toLocaleString()}</span>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden max-w-[80px] hidden lg:block">
+                                                <div
+                                                    className={clsx(
+                                                        "h-full rounded-full transition-all",
+                                                        margin >= 30 ? "bg-emerald-500" : margin >= 15 ? "bg-amber-500" : "bg-rose-500"
+                                                    )}
+                                                    style={{ width: `${Math.min(100, margin * 2)}%` }}
+                                                />
+                                            </div>
+                                            <span className={clsx(
+                                                "text-sm font-black px-2 py-1 rounded-lg",
+                                                margin >= 30 ? "bg-emerald-100 text-emerald-700" : margin >= 15 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"
+                                            )}>
+                                                {margin.toFixed(0)}%
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
+                    </Table>
+                </div>
+
+                {(!salesByItem || salesByItem.length === 0) && (
+                    <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center">
+                        <BarChart3 size={48} className="mx-auto text-slate-200 mb-4" />
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">No sales data yet</h3>
+                        <p className="text-sm text-slate-500">Complete some sales to see analytics here</p>
+                    </div>
+                )}
             </div>
         </div>
     );

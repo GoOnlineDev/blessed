@@ -1,83 +1,102 @@
 "use client";
 
-import { createContext, useContext, ReactNode, useEffect, useMemo } from "react";
+import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { refreshSession } from "@/app/actions/refresh_session";
+import { Id } from "@/convex/_generated/dataModel";
 
 interface User {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    allowedPages: string[];
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  allowedPages: string[];
 }
 
 interface AuthContextType {
-    user: User | null;
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (userId: string, userData: Omit<User, "id">) => void;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ user: initialUser, children }: { user: User | null, children: ReactNode }) {
-    // Live subscription to user data in Convex - Using email as it's a stable string in JWT
-    const liveUser = useQuery(api.users.getByEmail, initialUser?.email ? { email: initialUser.email } : "skip");
+const STORAGE_KEY = "genesis_auth_user";
 
-    // Session Auto-Sync Effect
-    useEffect(() => {
-        if (!liveUser || !initialUser) return;
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [storedUserId, setStoredUserId] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-        // Check for mismatch between live data (Convex) and session data (JWT)
-        const roleMismatch = liveUser.role !== initialUser.role;
-        const pagesMismatch = JSON.stringify(liveUser.allowedPages) !== JSON.stringify(initialUser.allowedPages);
+  // Load from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setStoredUserId(parsed.userId);
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+    setIsInitialized(true);
+  }, []);
 
-        if (roleMismatch || pagesMismatch) {
-            console.warn(`AuthProvider: Session mismatch detected for ${liveUser.email}. Triggering auto-sync...`);
-            console.log(" - Live Role:", liveUser.role, "vs Session Role:", initialUser.role);
+  // Query user data if we have a stored userId
+  const userData = useQuery(
+    api.users.getById,
+    storedUserId ? { id: storedUserId as Id<"users"> } : "skip"
+  );
 
-            // Trigger server action to update the JWT cookie silently
-            refreshSession().then(result => {
-                if (result.success) {
-                    console.log("AuthProvider: Session cookie successfully synced with Convex.");
-                } else {
-                    console.error("AuthProvider: Failed to auto-sync session cookie:", result.error);
-                }
-            });
-        }
-    }, [liveUser, initialUser]);
+  const isLoading = !isInitialized || (storedUserId !== null && userData === undefined);
 
-    useEffect(() => {
-        if (liveUser) {
-            console.log(`AuthProvider: [LIVE] Connected to Convex for: ${liveUser.email}. Current Role: ${liveUser.role}, Pages: ${liveUser.allowedPages.length}`);
-        }
-    }, [liveUser]);
+  const user: User | null = userData
+    ? {
+        id: userData._id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        allowedPages: userData.allowedPages,
+      }
+    : null;
 
-    const activeUser = useMemo(() => {
-        if (!liveUser) {
-            if (initialUser) console.log(`AuthProvider: [SYNCING] Waiting for Convex... Falling back to session for: ${initialUser.email}`);
-            return initialUser;
-        }
+  const login = useCallback((userId: string, userData: Omit<User, "id">) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ userId, ...userData }));
+    setStoredUserId(userId);
+  }, []);
 
-        return {
-            id: liveUser._id,
-            name: liveUser.name,
-            email: liveUser.email,
-            role: liveUser.role as any,
-            allowedPages: liveUser.allowedPages,
-        };
-    }, [liveUser, initialUser]);
+  const logout = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setStoredUserId(null);
+  }, []);
 
-    return (
-        <AuthContext.Provider value={{ user: activeUser }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  // If user was deleted from DB, clear local storage
+  useEffect(() => {
+    if (isInitialized && storedUserId && userData === null) {
+      logout();
+    }
+  }, [isInitialized, storedUserId, userData, logout]);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error("useAuth must be used within an AuthProvider");
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }
