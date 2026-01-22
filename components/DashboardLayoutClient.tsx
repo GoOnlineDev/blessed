@@ -6,6 +6,10 @@ import Sidebar from "./Sidebar";
 import SyncIndicator from "./SyncIndicator";
 import { Menu, Bell } from "lucide-react";
 import { useAuth } from "./AuthProvider";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 
 // Page titles mapping
 const pageTitles: Record<string, string> = {
@@ -80,62 +84,67 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
       {/* Main Content Area */}
       <div className="lg:ml-72 min-h-screen flex flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
           <div className="h-16 px-4 lg:px-6 flex items-center justify-between gap-4">
             {/* Left side */}
             <div className="flex items-center gap-4">
               {/* Mobile menu button */}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={openSidebar}
-                className="lg:hidden p-2 -ml-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                className="lg:hidden -ml-2 text-slate-600 hover:text-slate-900"
                 aria-label="Open menu"
               >
-                <Menu size={24} />
-              </button>
+                <Menu size={20} />
+              </Button>
 
               {/* Mobile logo */}
               <div className="lg:hidden flex items-center gap-2">
                 <img src="/logo.png" alt="Genesis@1" className="w-8 h-8 rounded-lg" />
-                <span className="font-bold text-gray-900">Genesis@1</span>
+                <span className="font-bold text-slate-900">Genesis@1</span>
               </div>
 
               {/* Desktop: Page title */}
               <div className="hidden lg:block">
-                <h1 className="text-xl font-bold text-gray-900">{pageTitle}</h1>
-                <p className="text-sm text-gray-500">Welcome back, {userName.split(" ")[0]}</p>
+                <h1 className="text-xl font-bold text-slate-900">{pageTitle}</h1>
+                <p className="text-sm text-slate-500">Welcome back, {userName.split(" ")[0]}</p>
               </div>
             </div>
 
             {/* Right side */}
             <div className="flex items-center gap-3">
               {/* Notifications */}
-              <button
+              <Button
                 type="button"
-                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors relative"
+                variant="ghost"
+                size="icon"
+                className="relative text-slate-500 hover:text-slate-700"
               >
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
+                <Bell size={18} />
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500" />
+              </Button>
 
               {/* User avatar (desktop) */}
-              <div className="hidden lg:flex items-center gap-3 pl-3 border-l border-gray-200">
+              <div className="hidden lg:flex items-center gap-3 pl-3">
+                <Separator orientation="vertical" className="h-8" />
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">{userName}</p>
-                  <p className="text-xs text-indigo-600 capitalize">{userRole}</p>
+                  <p className="text-sm font-semibold text-slate-900">{userName}</p>
+                  <Badge variant="secondary" className="mt-1 text-[10px] uppercase tracking-widest">
+                    {userRole}
+                  </Badge>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <span className="text-indigo-600 font-bold">
-                    {userName.charAt(0).toUpperCase()}
-                  </span>
-                </div>
+                <Avatar>
+                  <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
               </div>
             </div>
           </div>
 
           {/* Mobile: Page title bar */}
-          <div className="lg:hidden px-4 py-3 bg-gray-50 border-t border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900">{pageTitle}</h2>
+          <div className="lg:hidden px-4 py-3 bg-slate-50 border-t border-slate-100">
+            <h2 className="text-lg font-bold text-slate-900">{pageTitle}</h2>
           </div>
         </header>
 
@@ -145,8 +154,8 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
         </main>
 
         {/* Footer */}
-        <footer className="px-4 lg:px-6 py-4 border-t border-gray-200 bg-white">
-          <p className="text-center text-xs text-gray-500">
+        <footer className="px-4 lg:px-6 py-4 border-t border-slate-200 bg-white">
+          <p className="text-center text-xs text-slate-500">
             © 2024 Genesis@1 Hardware. All rights reserved.
           </p>
         </footer>

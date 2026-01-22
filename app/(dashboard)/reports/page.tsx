@@ -174,7 +174,7 @@ export default function ReportsPage() {
                                             boxShadow: '0 10px 30px rgba(0,0,0,0.04)'
                                         }}
                                         labelStyle={{ color: '#0f172a', fontWeight: 900, marginBottom: '4px' }}
-                                        formatter={(value: number) => [`UGX ${value.toLocaleString()}`, 'Revenue']}
+                                        formatter={(value: number | undefined) => [`UGX ${(value ?? 0).toLocaleString()}`, "Revenue"]}
                                     />
                                     <Bar dataKey="revenue" fill="#4f46e5" radius={[0, 8, 8, 0]} barSize={24} />
                                 </BarChart>

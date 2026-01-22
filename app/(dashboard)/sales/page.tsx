@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Table, TableRow, TableCell } from "@/components/Table";
 import { Button, Input } from "@/components/UI";
 import { ShoppingCart, Search, Receipt, Plus, Minus, CheckCircle2, Package, Clock, User, Wifi, WifiOff, RefreshCw } from "lucide-react";
@@ -9,6 +10,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useProducts } from "@/lib/stores/use-products";
 import { useOfflineStore } from "@/lib/stores/offline-store";
+import { SyncService } from "@/lib/stores/sync-service";
 import { clsx } from "clsx";
 
 export default function SalesPage() {
@@ -24,7 +26,7 @@ export default function SalesPage() {
 
     // Use offline-first products
     const { products, isLoading: productsLoading } = useProducts(user?.role || "viewer");
-    const { isOnline, pendingSyncCount, transactions: offlineTransactions } = useOfflineStore();
+    const { isOnline, pendingSyncCount, transactions: offlineTransactions, updateProduct } = useOfflineStore();
 
     // Get recent sales from Convex (real-time)
     const recentSales = useQuery(api.transactions.listRecent, { limit: 10 });
@@ -37,7 +39,7 @@ export default function SalesPage() {
         : [];
 
     const handleRegisterSale = async () => {
-        if (!selectedProduct || quantity <= 0 || !user?._id) return;
+        if (!selectedProduct || quantity <= 0 || !user?.id) return;
 
         // Check stock availability
         if (selectedProduct.stockQuantity < quantity) {
@@ -47,11 +49,18 @@ export default function SalesPage() {
 
         setIsProcessing(true);
         try {
-            await createTransaction({
-                productId: selectedProduct._id,
-                userId: user._id,
-                quantity,
-            });
+            if (isOnline) {
+                await createTransaction({
+                    productId: selectedProduct._id,
+                    userId: user.id as Id<"users">,
+                    quantity,
+                });
+            } else {
+                await SyncService.addTransaction(selectedProduct._id, user.id, quantity, selectedProduct);
+                updateProduct(selectedProduct._id, {
+                    stockQuantity: selectedProduct.stockQuantity - quantity,
+                });
+            }
 
             setSuccess(true);
             setSelectedProduct(null);

@@ -12,6 +12,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -92,13 +97,14 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-xl transition-transform duration-300 ease-out lg:translate-x-0 lg:shadow-none lg:border-r lg:border-gray-200 ${
+        className={cn(
+          "fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-xl transition-transform duration-300 ease-out lg:translate-x-0 lg:shadow-none lg:border-r lg:border-slate-200",
           isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        )}
       >
         <div className="flex flex-col h-full">
           {/* Logo & Close */}
-          <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="flex items-center justify-between p-5 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <img
                 src="/logo.png"
@@ -107,19 +113,23 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
               />
               <div>
                 <h1 className="font-bold text-gray-900">Genesis@1</h1>
-                <p className="text-xs font-medium text-indigo-600">Hardware</p>
+                <Badge variant="secondary" className="mt-1 text-[10px] uppercase tracking-widest">
+                  Hardware
+                </Badge>
               </div>
             </div>
             
             {/* Close button - Mobile only */}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={handleClose}
-              className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+              className="lg:hidden text-slate-500 hover:text-slate-700"
               aria-label="Close menu"
             >
-              <X size={24} />
-            </button>
+              <X size={20} />
+            </Button>
           </div>
 
           {/* Navigation */}
@@ -130,30 +140,32 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 const Icon = item.icon;
 
                 return (
-                  <button
+                  <Button
                     key={item.href}
                     type="button"
                     onClick={() => handleNavClick(item.href)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start gap-3 px-4 py-3 text-left font-medium transition-all duration-200",
                       active
-                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-                        : "text-gray-600 hover:bg-gray-100 active:bg-gray-200"
-                    }`}
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-600"
+                        : "text-slate-600 hover:bg-slate-100 active:bg-slate-200"
+                    )}
                   >
                     <Icon
                       size={20}
-                      className={active ? "text-white" : "text-gray-400"}
+                      className={active ? "text-white" : "text-slate-400"}
                     />
                     <span className="font-medium flex-1">{item.label}</span>
                     {active && <ChevronRight size={16} className="text-white/70" />}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
 
             {/* Restricted Pages Notice */}
             {role !== "admin" && navItems.length > accessibleItems.length && (
-              <div className="mt-6 p-3 bg-amber-50 rounded-xl border border-amber-100">
+              <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50 p-3">
                 <p className="text-xs text-amber-700 font-medium">
                   Some pages are restricted. Contact admin for access.
                 </p>
@@ -162,27 +174,27 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           </nav>
 
           {/* User Profile & Logout */}
-          <div className="p-4 border-t border-gray-100">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-3">
-              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                <span className="text-indigo-600 font-bold">
-                  {userName.charAt(0).toUpperCase()}
-                </span>
-              </div>
+          <div className="p-4 border-t border-slate-100">
+            <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 mb-3">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+              </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 text-sm truncate">{userName}</p>
-                <p className="text-xs text-gray-500 capitalize">{role}</p>
+                <p className="font-semibold text-slate-900 text-sm truncate">{userName}</p>
+                <p className="text-xs text-slate-500 capitalize">{role}</p>
               </div>
             </div>
 
-            <button
+            <Separator className="mb-3" />
+            <Button
               type="button"
+              variant="ghost"
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 active:bg-red-100 border border-gray-200 hover:border-red-200 transition-all duration-200"
+              className="w-full justify-center gap-2 text-slate-600 hover:text-rose-600 hover:bg-rose-50"
             >
               <LogOut size={18} />
               <span>Sign Out</span>
-            </button>
+            </Button>
           </div>
         </div>
       </aside>

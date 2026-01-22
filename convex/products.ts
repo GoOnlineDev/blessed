@@ -69,6 +69,15 @@ export const list = query({
   },
 });
 
+export const listForInventory = query({
+  args: { role: v.string() },
+  handler: async (ctx, args) => {
+    const products = await ctx.db.query("products").collect();
+
+    return products;
+  },
+});
+
 export const get = query({
   args: { id: v.id("products"), role: v.string() },
   handler: async (ctx, args) => {

@@ -75,7 +75,7 @@ export default function RegisterPage() {
               Genesis@1 Inventory
             </p>
           </div>
-        </div>
+          </div>
 
         <div className="bg-white border border-slate-100 p-10 rounded-[3rem] shadow-[0_20px_70px_rgba(0,0,0,0.04)] relative overflow-hidden">
           <form onSubmit={handleSubmit} className="space-y-8 relative">
@@ -84,13 +84,13 @@ export default function RegisterPage() {
                 The first account created becomes{" "}
                 <span className="text-slate-900 font-black">Admin</span>.
               </p>
-            </div>
+          </div>
 
-            {error && (
+              {error && (
               <div className="p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-xs font-bold uppercase tracking-wide animate-in fade-in slide-in-from-top-2 duration-300">
-                {error}
-              </div>
-            )}
+                  {error}
+                </div>
+              )}
 
             <div className="space-y-6">
               <div className="space-y-2">
@@ -140,12 +140,12 @@ export default function RegisterPage() {
                     placeholder="••••••••"
                   />
                 </div>
+                </div>
               </div>
-            </div>
 
             <Button
-              type="submit"
-              disabled={isPending}
+                type="submit"
+                disabled={isPending}
               className="w-full py-5 rounded-2xl text-base font-black shadow-xl shadow-indigo-100 mt-4 active:scale-[0.98] transition-all"
             >
               {isPending ? (
@@ -160,7 +160,7 @@ export default function RegisterPage() {
                 </div>
               )}
             </Button>
-          </form>
+            </form>
 
           <div className="mt-10 pt-8 border-t border-slate-50 text-center">
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">

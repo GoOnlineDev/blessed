@@ -3,9 +3,16 @@ import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useOfflineStore } from './offline-store';
 
-export function useProducts(role: string) {
+interface UseProductsOptions {
+  includeBuyPrice?: boolean;
+}
+
+export function useProducts(role: string, options?: UseProductsOptions) {
   // Get products from Convex directly (real-time)
-  const convexProducts = useQuery(api.products.list, { role });
+  const convexProducts = useQuery(
+    options?.includeBuyPrice ? api.products.listForInventory : api.products.list,
+    { role }
+  );
   
   // Also track in offline store for offline functionality
   const { products: offlineProducts, isOnline } = useOfflineStore();

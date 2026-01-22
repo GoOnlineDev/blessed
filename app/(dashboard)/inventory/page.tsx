@@ -28,7 +28,7 @@ export default function InventoryPage() {
     const deleteProduct = useMutation(api.products.deleteProduct);
 
     // Get products from hook (uses real-time Convex query)
-    const { products, isLoading, error } = useProducts(user?.role || "viewer");
+    const { products, isLoading, error } = useProducts(user?.role || "viewer", { includeBuyPrice: true });
     const { isOnline, pendingSyncCount } = useOfflineStore();
 
     const filteredProducts = products?.filter(p =>
