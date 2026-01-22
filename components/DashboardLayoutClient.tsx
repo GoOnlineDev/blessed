@@ -4,12 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import SyncIndicator from "./SyncIndicator";
-import { Menu, Bell } from "lucide-react";
 import { useAuth } from "./AuthProvider";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+import DashboardHeader from "./DashboardHeader";
+import MobileSidebar from "./MobileSidebar";
 
 // Page titles mapping
 const pageTitles: Record<string, string> = {
@@ -21,7 +18,7 @@ const pageTitles: Record<string, string> = {
 };
 
 export default function DashboardLayoutClient({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -34,7 +31,7 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
 
   // Close sidebar when pathname changes (for navigation)
   useEffect(() => {
-    setSidebarOpen(false);
+    setMobileSidebarOpen(false);
   }, [pathname]);
 
   // Redirect to login if not authenticated
@@ -44,9 +41,8 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Open sidebar handler
-  const openSidebar = () => {
-    setSidebarOpen(true);
+  const toggleSidebar = () => {
+    setMobileSidebarOpen((prev) => !prev);
   };
 
   // Loading state
@@ -75,78 +71,23 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar - pass setIsOpen directly */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
+      {/* Desktop Sidebar */}
+      <Sidebar />
+
+      {/* Mobile Sidebar */}
+      <MobileSidebar
+        isOpen={mobileSidebarOpen}
+        onOpenChange={setMobileSidebarOpen}
       />
 
       {/* Main Content Area */}
       <div className="lg:ml-72 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
-          <div className="h-16 px-4 lg:px-6 flex items-center justify-between gap-4">
-            {/* Left side */}
-            <div className="flex items-center gap-4">
-              {/* Mobile menu button */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={openSidebar}
-                className="lg:hidden -ml-2 text-slate-600 hover:text-slate-900"
-                aria-label="Open menu"
-              >
-                <Menu size={20} />
-              </Button>
-
-              {/* Mobile logo */}
-              <div className="lg:hidden flex items-center gap-2">
-                <img src="/logo.png" alt="Genesis@1" className="w-8 h-8 rounded-lg" />
-                <span className="font-bold text-slate-900">Genesis@1</span>
-              </div>
-
-              {/* Desktop: Page title */}
-              <div className="hidden lg:block">
-                <h1 className="text-xl font-bold text-slate-900">{pageTitle}</h1>
-                <p className="text-sm text-slate-500">Welcome back, {userName.split(" ")[0]}</p>
-              </div>
-            </div>
-
-            {/* Right side */}
-            <div className="flex items-center gap-3">
-              {/* Notifications */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="relative text-slate-500 hover:text-slate-700"
-              >
-                <Bell size={18} />
-                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500" />
-              </Button>
-
-              {/* User avatar (desktop) */}
-              <div className="hidden lg:flex items-center gap-3 pl-3">
-                <Separator orientation="vertical" className="h-8" />
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-slate-900">{userName}</p>
-                  <Badge variant="secondary" className="mt-1 text-[10px] uppercase tracking-widest">
-                    {userRole}
-                  </Badge>
-                </div>
-                <Avatar>
-                  <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile: Page title bar */}
-          <div className="lg:hidden px-4 py-3 bg-slate-50 border-t border-slate-100">
-            <h2 className="text-lg font-bold text-slate-900">{pageTitle}</h2>
-          </div>
-        </header>
+        <DashboardHeader
+          pageTitle={pageTitle}
+          userName={userName}
+          userRole={userRole}
+          onOpenSidebar={toggleSidebar}
+        />
 
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-6">
@@ -156,7 +97,7 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
         {/* Footer */}
         <footer className="px-4 lg:px-6 py-4 border-t border-slate-200 bg-white">
           <p className="text-center text-xs text-slate-500">
-            © 2024 Genesis@1 Hardware. All rights reserved.
+            © 2026 Genesis@1 Hardware. All rights reserved.
           </p>
         </footer>
       </div>

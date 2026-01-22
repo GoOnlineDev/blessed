@@ -1,53 +1,40 @@
-"use client";
-
-import { usePathname } from "next/navigation";
-import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  BarChart3,
-  Users,
   LogOut,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { navItems } from "./Sidebar";
 
-export const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Inventory", href: "/inventory", icon: Package },
-  { label: "Sales", href: "/sales", icon: ShoppingCart },
-  { label: "Reports", href: "/reports", icon: BarChart3 },
-  { label: "Users", href: "/users", icon: Users },
-];
+interface MobileSidebarProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-export default function Sidebar() {
+export default function MobileSidebar({ isOpen, onOpenChange }: MobileSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
 
   const role = user?.role || "viewer";
   const allowedPages = user?.allowedPages || ["/dashboard"];
   const userName = user?.name || "User";
 
-  // Check if user has access to a page
   const hasAccess = (href: string): boolean => {
     if (role === "admin") return true;
     return allowedPages.includes(href);
   };
 
-  // Get filtered nav items based on role
   const accessibleItems = navItems.filter((item) => hasAccess(item.href));
 
-  const handleLogout = () => {
-    logout();
-  };
-
-  // Check if route is active
   const isActive = (href: string): boolean => {
     if (href === "/dashboard") {
       return pathname === "/dashboard";
@@ -55,14 +42,18 @@ export default function Sidebar() {
     return pathname.startsWith(href);
   };
 
+  const handleLogout = () => {
+    logout();
+    onOpenChange(false);
+    setTimeout(() => {
+      router.push("/login");
+    }, 100);
+  };
+
   return (
-    <aside
-      className={cn(
-        "hidden lg:flex fixed top-0 left-0 h-full w-72 bg-white z-40 shadow-none border-r border-slate-200"
-      )}
-    >
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+      <SheetContent className="p-0 w-80">
         <div className="flex flex-col h-full">
-          {/* Logo & Close */}
           <div className="flex items-center justify-between p-5 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <img
@@ -77,9 +68,18 @@ export default function Sidebar() {
                 </Badge>
               </div>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="text-slate-500 hover:text-slate-700"
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </Button>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 p-4 overflow-y-auto">
             <div className="space-y-1">
               {accessibleItems.map((item) => {
@@ -99,11 +99,12 @@ export default function Sidebar() {
                         : "text-slate-600 hover:bg-slate-100 active:bg-slate-200"
                     )}
                   >
-                    <Link href={item.href} className="flex items-center gap-3 w-full">
-                      <Icon
-                        size={20}
-                        className={active ? "text-white" : "text-slate-400"}
-                      />
+                    <Link
+                      href={item.href}
+                      className="flex items-center gap-3 w-full"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      <Icon size={20} className={active ? "text-white" : "text-slate-400"} />
                       <span className="font-medium flex-1">{item.label}</span>
                       {active && <ChevronRight size={16} className="text-white/70" />}
                     </Link>
@@ -112,7 +113,6 @@ export default function Sidebar() {
               })}
             </div>
 
-            {/* Restricted Pages Notice */}
             {role !== "admin" && navItems.length > accessibleItems.length && (
               <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50 p-3">
                 <p className="text-xs text-amber-700 font-medium">
@@ -122,7 +122,6 @@ export default function Sidebar() {
             )}
           </nav>
 
-          {/* User Profile & Logout */}
           <div className="p-4 border-t border-slate-100">
             <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 mb-3">
               <Avatar className="h-10 w-10">
@@ -133,7 +132,6 @@ export default function Sidebar() {
                 <p className="text-xs text-slate-500 capitalize">{role}</p>
               </div>
             </div>
-
             <Separator className="mb-3" />
             <Button
               type="button"
@@ -146,6 +144,7 @@ export default function Sidebar() {
             </Button>
           </div>
         </div>
-      </aside>
+      </SheetContent>
+    </Sheet>
   );
 }
